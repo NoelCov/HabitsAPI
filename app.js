@@ -15,7 +15,8 @@ mongoose.connect('mongodb://localhost:27017/habitsDB', {useNewUrlParser: true, u
 
 const habitsSchema = new mongoose.Schema({
   habit: String,
-  date: [],
+  date: String,
+  email: String
 })
 
 const Habit = mongoose.model("Habit", habitsSchema);
@@ -35,7 +36,8 @@ app.route('/habits')
   .post(function(req, res){
     const entry = new Habit({
       habit: req.body.habit,
-      date: [req.body.date],
+      date: req.body.date,
+      email: req.body.email
     })
     entry.save((err) => {
     if (!err){
@@ -54,37 +56,46 @@ app.route('/habits')
         res.send(err);
       }
     })
+  });
+
+
+// Route to find all the habits with the same email!
+app.get('/habits/email/:email', function(req, res){
+  Habit.find({email: req.params.email}, function(err, result){
+    if (!err){
+      res.send(result);
+    } else {
+      res.send(err + "User with email" + req.params.email + "not found!");
+    }
   })
+});
 
-
-app.route('/habits/:habit')
-  .get(function(req, res){
-    Habit.findOne({habit: req.params.habit}, function(err, result){
+// Route to delete and update single habits.
+app.route('/habits/habit/:habitName')
+  .get((req, res) => {
+    Habit.findOne({habit: req.params.habitName}, (err, result) =>{
       if (!err){
         res.send(result);
       } else {
-        res.send(err + "Habit not found!");
+        res.send(err + "Habit does not exist");
       }
     })
   })
-  .put(function(req, res){
-    Habit.updateOne(
-      {habit: req.params.habit},
-      {
-        habit: req.body.habit,
-        date: req.body.date,
-      },
-      {overwrite: true},
+  .delete((req, res) => {
+    Habit.deleteOne(
+      {habit: req.params.habitName},
       function(err){
         if (!err){
-          res.send("Successfully updated entry for habit.")
+          res.send("Habit sucessfully deleted from db");
+        } else {
+          res.send(err);
         }
       }
     )
   })
   .patch(function(req, res){
     Habit.updateOne(
-      {habit: req.params.habit},
+      {habit: req.params.habitName},
       {$set: req.body},
       function(err){
         if (!err){
@@ -95,18 +106,23 @@ app.route('/habits/:habit')
       }
     )
   })
-  .delete(function(req, res){
-    Habit.deleteOne(
-      {habit: req.params.habit},
+  .put(function(req, res){
+    Habit.updateOne(
+      {habit: req.params.habitName},
+      {
+        habit: req.body.habitName,
+        date: req.body.date,
+        email: req.body.email
+      },
+      {overwrite: true},
       function(err){
         if (!err){
-          res.send("Habit sucessfully deleted from db");
-        } else {
-          res.send(err);
+          res.send("Successfully updated entry for habit.")
         }
       }
     )
-  })
+  });
+
 
 app.listen(5000, function(){
   console.log("Server running on port 5000");
